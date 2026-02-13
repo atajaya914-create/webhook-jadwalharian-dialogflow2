@@ -1,44 +1,29 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-const fs = require("fs");
-
 const app = express();
-app.use(bodyParser.json());
+
+app.use(express.json());
+
+const jadwal = {
+  senin: { 1: "Matematika", 2: "Bahasa Indonesia" },
+  selasa: { 1: "IPS", 2: "Bahasa Inggris" }
+};
 
 app.post("/webhook", (req, res) => {
+  const intent = req.body.queryResult.intent.displayName;
+  const hari = req.body.queryResult.parameters.hari;
+  const jam = req.body.queryResult.parameters.jam;
 
-  const today = new Date().toLocaleDateString("id-ID", {
-    weekday: "long"
-  }).toLowerCase();
-
-  let data = {};
-
-  if (fs.existsSync("jadwal.json")) {
-    data = JSON.parse(fs.readFileSync("jadwal.json"));
+  if (intent === "TanyaJadwal") {
+    if (jadwal[hari] && jadwal[hari][jam]) {
+      return res.json({
+        fulfillmentText: `Hari ${hari} jam ${jam} adalah ${jadwal[hari][jam]}`
+      });
+    } else {
+      return res.json({
+        fulfillmentText: "Jadwal tidak ditemukan."
+      });
+    }
   }
-
-  const jadwalHariIni = data[today];
-
-  if (!jadwalHariIni) {
-    return res.json({
-      fulfillmentText: `Tidak ada jadwal untuk hari ${today}`
-    });
-  }
-
-  let hasil = `Hari ini (${today}):\n`;
-
-  jadwalHariIni.forEach(j => {
-    hasil += `- ${j.mapel} jam ${j.jam}\n`;
-  });
-
-  return res.json({
-    fulfillmentText: hasil
-  });
-
 });
 
-app.get("/", (req,res)=>{
-  res.send("Webhook aktif");
-});
-
-app.listen(3000);
+app.listen(3000, () => console.log("Server berjalan"));
